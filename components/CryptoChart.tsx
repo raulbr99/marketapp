@@ -20,12 +20,12 @@ interface CryptoChartProps {
 export default function CryptoChart({ data, symbol }: CryptoChartProps) {
   const formattedData = data.map(item => ({
     ...item,
-    formattedDate: format(new Date(item.date), 'MMM dd'),
+    formattedDate: format(new Date(item.date), 'MMM dd, yyyy'),
   })).reverse();
 
   return (
     <div className="bg-gradient-to-br from-purple-500/10 to-blue-600/10 dark:from-purple-500/20 dark:to-blue-600/20 rounded-lg shadow-md p-6">
-      <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{symbol} - Price History (Daily)</h3>
+      <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{symbol} - Price History (Weekly - Last Year)</h3>
       <ResponsiveContainer width="100%" height={400}>
         <LineChart data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />

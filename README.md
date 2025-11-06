@@ -14,8 +14,9 @@ Una aplicación web moderna construida con Next.js 16 para rastrear tendencias d
 - Seguimiento de Bitcoin, Ethereum y otras criptomonedas
 - Conversión a diferentes monedas fiat (USD, EUR, etc.)
 - Precios en tiempo real
-- **Gráficos históricos diarios** con precio de cierre, máximo y mínimo
+- **Gráficos históricos semanales** (último año) con precio de cierre, máximo y mínimo
 - Visualización con gradientes de color estilo crypto
+- Soporta: BTC, ETH, LTC, XRP, ADA, DOT, DOGE y más
 
 ### 3. **Monitor de Forex**
 - Tipos de cambio para pares de divisas principales

@@ -59,9 +59,10 @@ export default function Home() {
         getCryptoDailyTimeSeries(symbol),
       ]);
       setCryptoData(quote);
-      setCryptoTimeSeriesData(timeSeries.slice(0, 100));
-    } catch (err) {
-      setError('Failed to fetch crypto data. Please check the symbol and try again.');
+      setCryptoTimeSeriesData(timeSeries);
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Failed to fetch crypto data. Please check the symbol and try again.';
+      setError(errorMessage + ' Try: BTC, ETH, LTC, XRP, ADA, DOT, DOGE');
       console.error(err);
     } finally {
       setLoading(false);

@@ -175,7 +175,7 @@ export async function getForexRate(
   }
 }
 
-// Get crypto daily time series
+// Get crypto weekly time series (more reliable than daily for free tier)
 export async function getCryptoDailyTimeSeries(
   symbol: string,
   market: string = 'USD'
@@ -183,30 +183,45 @@ export async function getCryptoDailyTimeSeries(
   try {
     const response = await axios.get(BASE_URL, {
       params: {
-        function: 'DIGITAL_CURRENCY_DAILY',
+        function: 'DIGITAL_CURRENCY_WEEKLY',
         symbol,
         market,
         apikey: API_KEY,
       },
     });
 
-    const timeSeries = response.data['Time Series (Digital Currency Daily)'];
+    // Check for error messages
+    if (response.data['Error Message']) {
+      throw new Error(response.data['Error Message']);
+    }
+
+    if (response.data['Note']) {
+      throw new Error('API rate limit reached. Please try again in a minute.');
+    }
+
+    const timeSeries = response.data['Time Series (Digital Currency Weekly)'];
+
     if (!timeSeries) {
-      throw new Error('No data available');
+      console.error('Response data:', response.data);
+      throw new Error('No crypto data available. Make sure to use valid crypto symbols like BTC, ETH, LTC, etc.');
     }
 
     return Object.entries(timeSeries)
-      .slice(0, 100)
+      .slice(0, 52) // Last year of weekly data
       .map(([date, values]: [string, any]) => ({
         date,
-        open: parseFloat(values[`1a. open (${market})`] || values['1a. open (USD)']),
-        high: parseFloat(values[`2a. high (${market})`] || values['2a. high (USD)']),
-        low: parseFloat(values[`3a. low (${market})`] || values['3a. low (USD)']),
-        close: parseFloat(values[`4a. close (${market})`] || values['4a. close (USD)']),
-        volume: parseFloat(values['5. volume']),
-      }));
-  } catch (error) {
-    console.error('Error fetching crypto daily data:', error);
+        open: parseFloat(values[`1a. open (${market})`] || values['1a. open (USD)'] || '0'),
+        high: parseFloat(values[`2a. high (${market})`] || values['2a. high (USD)'] || '0'),
+        low: parseFloat(values[`3a. low (${market})`] || values['3a. low (USD)'] || '0'),
+        close: parseFloat(values[`4a. close (${market})`] || values['4a. close (USD)'] || '0'),
+        volume: parseFloat(values['5. volume'] || '0'),
+      }))
+      .filter(item => item.close > 0); // Filter out invalid data
+  } catch (error: any) {
+    console.error('Error fetching crypto data:', error);
+    if (error.response) {
+      console.error('Response data:', error.response.data);
+    }
     throw error;
   }
 }
