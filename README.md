@@ -7,23 +7,29 @@ Una aplicación web moderna construida con Next.js 16 para rastrear tendencias d
 ### 1. **Dashboard de Acciones (Stocks)**
 - Búsqueda de acciones por símbolo (AAPL, MSFT, GOOGL, etc.)
 - Cotizaciones en tiempo real con precio actual, cambio y volumen
-- Gráficos interactivos con datos intradiarios (cada 5 minutos)
-- Visualización de precio de cierre, máximo y mínimo
+- **Gráficos de velas japonesas (candlestick)** con datos intradiarios (cada 5 minutos)
+- Visualización completa: Open, High, Low, Close (OHLC)
+- Tooltips detallados con cambio porcentual y volumen
+- Colores: Verde (alcista) / Rojo (bajista)
 
 ### 2. **Rastreador de Criptomonedas**
 - Seguimiento de Bitcoin, Ethereum y otras criptomonedas
 - Conversión a diferentes monedas fiat (USD, EUR, etc.)
 - Precios en tiempo real
-- **Gráficos históricos semanales** (último año) con precio de cierre, máximo y mínimo
-- Visualización con gradientes de color estilo crypto
+- **Gráficos de velas semanales** (último año) con datos OHLC completos
+- Visualización con gradientes púrpura/rosa estilo crypto
+- Tooltips con información detallada y cambio porcentual
+- Colores: Púrpura (alcista) / Rosa (bajista)
 - Soporta: BTC, ETH, LTC, XRP, ADA, DOT, DOGE y más
 
 ### 3. **Monitor de Forex**
 - Tipos de cambio para pares de divisas principales
 - Formato: USD/EUR, GBP/JPY, etc.
 - Actualización en tiempo real
-- **Gráficos de series de tiempo diarias** para pares de divisas
-- Visualización con área sombreada y líneas de máximo/mínimo
+- **Gráficos de velas diarias** con datos OHLC completos
+- Tooltips con precisión de 5 decimales para forex
+- Colores: Azul (fortalecimiento) / Ámbar (debilitamiento)
+- Ideal para análisis técnico de divisas
 
 ### 4. **Indicadores Técnicos**
 - RSI (Relative Strength Index)

@@ -12,12 +12,14 @@ interface TimeSeriesData {
   volume: number;
 }
 
-interface StockChartProps {
+interface CandlestickChartProps {
   data: TimeSeriesData[];
-  symbol: string;
+  title: string;
+  dateFormat?: string;
+  height?: number;
 }
 
-// Custom Candlestick shape
+// Custom Candlestick shape component
 const Candlestick = (props: any) => {
   const { x, y, width, height, payload } = props;
 
@@ -27,25 +29,25 @@ const Candlestick = (props: any) => {
 
   const { open, close, high, low } = payload;
   const isPositive = close >= open;
-  const color = isPositive ? '#10b981' : '#ef4444';
+  const color = isPositive ? '#10b981' : '#ef4444'; // Green for up, red for down
   const ratio = Math.abs(height / (open - close));
 
   return (
     <g>
-      {/* High-Low wick */}
+      {/* High-Low line (wick) */}
       <line
         x1={x + width / 2}
         y1={y - (high - Math.max(open, close)) * ratio}
         x2={x + width / 2}
         y2={y + height + (Math.min(open, close) - low) * ratio}
         stroke={color}
-        strokeWidth={1.5}
+        strokeWidth={1}
       />
-      {/* Body */}
+      {/* Body rectangle */}
       <rect
-        x={x + 1}
+        x={x}
         y={y}
-        width={Math.max(width - 2, 1)}
+        width={width}
         height={height || 1}
         fill={color}
         stroke={color}
@@ -55,12 +57,18 @@ const Candlestick = (props: any) => {
   );
 };
 
-export default function StockChart({ data, symbol }: StockChartProps) {
+export default function CandlestickChart({
+  data,
+  title,
+  dateFormat = 'MMM dd HH:mm',
+  height = 500
+}: CandlestickChartProps) {
   const formattedData = data.map(item => ({
     ...item,
-    formattedDate: format(new Date(item.date), 'MMM dd HH:mm'),
+    formattedDate: format(new Date(item.date), dateFormat),
   })).reverse();
 
+  // Custom tooltip
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -71,14 +79,16 @@ export default function StockChart({ data, symbol }: StockChartProps) {
         <div className="bg-gray-900 text-white p-3 rounded-lg shadow-lg border border-gray-700">
           <p className="font-semibold mb-2">{data.formattedDate}</p>
           <div className="space-y-1 text-sm">
-            <p>Open: <span className="font-semibold">${data.open.toFixed(2)}</span></p>
-            <p>High: <span className="font-semibold text-green-400">${data.high.toFixed(2)}</span></p>
-            <p>Low: <span className="font-semibold text-red-400">${data.low.toFixed(2)}</span></p>
-            <p>Close: <span className="font-semibold">${data.close.toFixed(2)}</span></p>
+            <p>Open: <span className="font-semibold">${data.open.toLocaleString()}</span></p>
+            <p>High: <span className="font-semibold text-green-400">${data.high.toLocaleString()}</span></p>
+            <p>Low: <span className="font-semibold text-red-400">${data.low.toLocaleString()}</span></p>
+            <p>Close: <span className="font-semibold">${data.close.toLocaleString()}</span></p>
             <p className={isPositive ? 'text-green-400' : 'text-red-400'}>
-              {isPositive ? '+' : ''}{change}%
+              Change: {isPositive ? '+' : ''}{change}%
             </p>
-            <p className="text-gray-400">Vol: {data.volume.toLocaleString()}</p>
+            {data.volume > 0 && (
+              <p className="text-gray-400">Vol: {data.volume.toLocaleString()}</p>
+            )}
           </div>
         </div>
       );
@@ -88,35 +98,30 @@ export default function StockChart({ data, symbol }: StockChartProps) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-          {symbol} - Candlestick Chart (Intraday)
-        </h3>
-        <div className="flex gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
-            <span className="text-gray-600 dark:text-gray-400">Bullish</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded"></div>
-            <span className="text-gray-600 dark:text-gray-400">Bearish</span>
-          </div>
+      <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{title}</h3>
+      <div className="mb-2 flex gap-4 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-green-500 rounded"></div>
+          <span className="text-gray-600 dark:text-gray-400">Bullish (Up)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-red-500 rounded"></div>
+          <span className="text-gray-600 dark:text-gray-400">Bearish (Down)</span>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={500}>
-        <ComposedChart data={formattedData} margin={{ bottom: 80 }}>
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
           <XAxis
             dataKey="formattedDate"
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 12 }}
             angle={-45}
             textAnchor="end"
-            height={80}
+            height={100}
           />
           <YAxis
             domain={['auto', 'auto']}
             tick={{ fontSize: 12 }}
-            tickFormatter={(value) => `$${value.toFixed(2)}`}
           />
           <Tooltip content={<CustomTooltip />} />
           <Bar

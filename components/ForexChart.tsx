@@ -1,6 +1,6 @@
 'use client';
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from 'recharts';
+import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { format } from 'date-fns';
 
 interface TimeSeriesData {
@@ -18,29 +18,97 @@ interface ForexChartProps {
   toCurrency: string;
 }
 
+// Custom Candlestick shape
+const Candlestick = (props: any) => {
+  const { x, y, width, height, payload } = props;
+
+  if (!payload || !payload.open || !payload.close || !payload.high || !payload.low) {
+    return null;
+  }
+
+  const { open, close, high, low } = payload;
+  const isPositive = close >= open;
+  const color = isPositive ? '#3b82f6' : '#f59e0b'; // Blue for up, amber for down (forex style)
+  const ratio = Math.abs(height / (open - close));
+
+  return (
+    <g>
+      {/* High-Low wick */}
+      <line
+        x1={x + width / 2}
+        y1={y - (high - Math.max(open, close)) * ratio}
+        x2={x + width / 2}
+        y2={y + height + (Math.min(open, close) - low) * ratio}
+        stroke={color}
+        strokeWidth={1.5}
+      />
+      {/* Body */}
+      <rect
+        x={x + 1}
+        y={y}
+        width={Math.max(width - 2, 1)}
+        height={height || 1}
+        fill={color}
+        stroke={color}
+        strokeWidth={1}
+      />
+    </g>
+  );
+};
+
 export default function ForexChart({ data, fromCurrency, toCurrency }: ForexChartProps) {
   const formattedData = data.map(item => ({
     ...item,
     formattedDate: format(new Date(item.date), 'MMM dd'),
   })).reverse();
 
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const isPositive = data.close >= data.open;
+      const change = ((data.close - data.open) / data.open * 100).toFixed(2);
+
+      return (
+        <div className="bg-gradient-to-br from-blue-900 to-indigo-900 text-white p-3 rounded-lg shadow-lg border border-blue-500">
+          <p className="font-semibold mb-2 text-blue-200">{data.formattedDate}</p>
+          <div className="space-y-1 text-sm">
+            <p>Open: <span className="font-semibold">{data.open.toFixed(5)}</span></p>
+            <p>High: <span className="font-semibold text-blue-300">{data.high.toFixed(5)}</span></p>
+            <p>Low: <span className="font-semibold text-amber-300">{data.low.toFixed(5)}</span></p>
+            <p>Close: <span className="font-semibold">{data.close.toFixed(5)}</span></p>
+            <p className={isPositive ? 'text-blue-300' : 'text-amber-300'}>
+              {isPositive ? '↑' : '↓'} {isPositive ? '+' : ''}{change}%
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-      <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-        {fromCurrency}/{toCurrency} - Exchange Rate History (Daily)
-      </h3>
-      <ResponsiveContainer width="100%" height={400}>
-        <AreaChart data={formattedData}>
-          <defs>
-            <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" />
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-blue-200 dark:border-blue-800">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+          {fromCurrency}/{toCurrency} - Candlestick Chart (Daily)
+        </h3>
+        <div className="flex gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500 rounded"></div>
+            <span className="text-gray-600 dark:text-gray-400">Strengthening</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-amber-500 rounded"></div>
+            <span className="text-gray-600 dark:text-gray-400">Weakening</span>
+          </div>
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={500}>
+        <ComposedChart data={formattedData} margin={{ bottom: 80 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#3b82f6" opacity={0.1} />
           <XAxis
             dataKey="formattedDate"
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 11 }}
             angle={-45}
             textAnchor="end"
             height={80}
@@ -48,43 +116,22 @@ export default function ForexChart({ data, fromCurrency, toCurrency }: ForexChar
           <YAxis
             domain={['auto', 'auto']}
             tick={{ fontSize: 12 }}
-            tickFormatter={(value) => value.toFixed(4)}
+            tickFormatter={(value) => value.toFixed(5)}
           />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: '#1f2937',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#fff'
-            }}
-            formatter={(value: any) => [parseFloat(value).toFixed(4), '']}
-          />
-          <Legend />
-          <Area
-            type="monotone"
+          <Tooltip content={<CustomTooltip />} />
+          <Bar
             dataKey="close"
-            stroke="#3b82f6"
-            strokeWidth={2}
-            fill="url(#colorRate)"
-            name="Exchange Rate"
-          />
-          <Line
-            type="monotone"
-            dataKey="high"
-            stroke="#10b981"
-            strokeWidth={1}
-            dot={false}
-            name="High"
-          />
-          <Line
-            type="monotone"
-            dataKey="low"
-            stroke="#ef4444"
-            strokeWidth={1}
-            dot={false}
-            name="Low"
-          />
-        </AreaChart>
+            shape={<Candlestick />}
+            isAnimationActive={false}
+          >
+            {formattedData.map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={entry.close >= entry.open ? '#3b82f6' : '#f59e0b'}
+              />
+            ))}
+          </Bar>
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
