@@ -6,11 +6,15 @@ import SearchBar from '@/components/SearchBar';
 import StockCard from '@/components/StockCard';
 import StockChart from '@/components/StockChart';
 import CryptoCard from '@/components/CryptoCard';
+import CryptoChart from '@/components/CryptoChart';
+import ForexChart from '@/components/ForexChart';
 import {
   getStockQuote,
   getIntradayTimeSeries,
   getCryptoQuote,
   getForexRate,
+  getCryptoDailyTimeSeries,
+  getForexDailyTimeSeries,
   type StockQuote,
   type TimeSeriesData,
   type CryptoData,
@@ -22,7 +26,9 @@ export default function Home() {
   const [stockData, setStockData] = useState<StockQuote | null>(null);
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
   const [cryptoData, setCryptoData] = useState<CryptoData | null>(null);
+  const [cryptoTimeSeriesData, setCryptoTimeSeriesData] = useState<TimeSeriesData[]>([]);
   const [forexData, setForexData] = useState<ForexRate | null>(null);
+  const [forexTimeSeriesData, setForexTimeSeriesData] = useState<TimeSeriesData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,8 +54,12 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getCryptoQuote(symbol);
-      setCryptoData(data);
+      const [quote, timeSeries] = await Promise.all([
+        getCryptoQuote(symbol),
+        getCryptoDailyTimeSeries(symbol),
+      ]);
+      setCryptoData(quote);
+      setCryptoTimeSeriesData(timeSeries.slice(0, 100));
     } catch (err) {
       setError('Failed to fetch crypto data. Please check the symbol and try again.');
       console.error(err);
@@ -66,8 +76,12 @@ export default function Home() {
       if (!from || !to) {
         throw new Error('Invalid forex pair format. Use format: USD/EUR');
       }
-      const data = await getForexRate(from.trim(), to.trim());
-      setForexData(data);
+      const [rate, timeSeries] = await Promise.all([
+        getForexRate(from.trim(), to.trim()),
+        getForexDailyTimeSeries(from.trim(), to.trim()),
+      ]);
+      setForexData(rate);
+      setForexTimeSeriesData(timeSeries.slice(0, 100));
     } catch (err) {
       setError('Failed to fetch forex data. Please use format: USD/EUR');
       console.error(err);
@@ -179,23 +193,37 @@ export default function Home() {
 
         {/* Crypto Data */}
         {activeTab === 'crypto' && cryptoData && !loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <CryptoCard {...cryptoData} />
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <CryptoCard {...cryptoData} />
+            </div>
+            {cryptoTimeSeriesData.length > 0 && (
+              <CryptoChart data={cryptoTimeSeriesData} symbol={cryptoData.symbol} />
+            )}
           </div>
         )}
 
         {/* Forex Data */}
         {activeTab === 'forex' && forexData && !loading && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 max-w-md mx-auto">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              {forexData.fromCurrency} / {forexData.toCurrency}
-            </h3>
-            <p className="text-4xl font-semibold text-blue-600 dark:text-blue-400 mb-4">
-              {parseFloat(forexData.rate).toFixed(4)}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Last updated: {forexData.lastRefreshed}
-            </p>
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 max-w-md mx-auto">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                {forexData.fromCurrency} / {forexData.toCurrency}
+              </h3>
+              <p className="text-4xl font-semibold text-blue-600 dark:text-blue-400 mb-4">
+                {parseFloat(forexData.rate).toFixed(4)}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Last updated: {forexData.lastRefreshed}
+              </p>
+            </div>
+            {forexTimeSeriesData.length > 0 && (
+              <ForexChart
+                data={forexTimeSeriesData}
+                fromCurrency={forexData.fromCurrency}
+                toCurrency={forexData.toCurrency}
+              />
+            )}
           </div>
         )}
 

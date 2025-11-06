@@ -175,6 +175,116 @@ export async function getForexRate(
   }
 }
 
+// Get crypto daily time series
+export async function getCryptoDailyTimeSeries(
+  symbol: string,
+  market: string = 'USD'
+): Promise<TimeSeriesData[]> {
+  try {
+    const response = await axios.get(BASE_URL, {
+      params: {
+        function: 'DIGITAL_CURRENCY_DAILY',
+        symbol,
+        market,
+        apikey: API_KEY,
+      },
+    });
+
+    const timeSeries = response.data['Time Series (Digital Currency Daily)'];
+    if (!timeSeries) {
+      throw new Error('No data available');
+    }
+
+    return Object.entries(timeSeries)
+      .slice(0, 100)
+      .map(([date, values]: [string, any]) => ({
+        date,
+        open: parseFloat(values[`1a. open (${market})`] || values['1a. open (USD)']),
+        high: parseFloat(values[`2a. high (${market})`] || values['2a. high (USD)']),
+        low: parseFloat(values[`3a. low (${market})`] || values['3a. low (USD)']),
+        close: parseFloat(values[`4a. close (${market})`] || values['4a. close (USD)']),
+        volume: parseFloat(values['5. volume']),
+      }));
+  } catch (error) {
+    console.error('Error fetching crypto daily data:', error);
+    throw error;
+  }
+}
+
+// Get forex daily time series
+export async function getForexDailyTimeSeries(
+  fromCurrency: string,
+  toCurrency: string
+): Promise<TimeSeriesData[]> {
+  try {
+    const response = await axios.get(BASE_URL, {
+      params: {
+        function: 'FX_DAILY',
+        from_symbol: fromCurrency,
+        to_symbol: toCurrency,
+        apikey: API_KEY,
+      },
+    });
+
+    const timeSeries = response.data['Time Series FX (Daily)'];
+    if (!timeSeries) {
+      throw new Error('No data available');
+    }
+
+    return Object.entries(timeSeries)
+      .slice(0, 100)
+      .map(([date, values]: [string, any]) => ({
+        date,
+        open: parseFloat(values['1. open']),
+        high: parseFloat(values['2. high']),
+        low: parseFloat(values['3. low']),
+        close: parseFloat(values['4. close']),
+        volume: 0, // Forex doesn't have volume
+      }));
+  } catch (error) {
+    console.error('Error fetching forex daily data:', error);
+    throw error;
+  }
+}
+
+// Get forex intraday time series
+export async function getForexIntradayTimeSeries(
+  fromCurrency: string,
+  toCurrency: string,
+  interval: '1min' | '5min' | '15min' | '30min' | '60min' = '5min'
+): Promise<TimeSeriesData[]> {
+  try {
+    const response = await axios.get(BASE_URL, {
+      params: {
+        function: 'FX_INTRADAY',
+        from_symbol: fromCurrency,
+        to_symbol: toCurrency,
+        interval,
+        apikey: API_KEY,
+      },
+    });
+
+    const timeSeries = response.data[`Time Series FX (${interval})`];
+    if (!timeSeries) {
+      throw new Error('No data available');
+    }
+
+    return Object.entries(timeSeries)
+      .slice(0, 100)
+      .map(([date, values]: [string, any]) => ({
+        date,
+        open: parseFloat(values['1. open']),
+        high: parseFloat(values['2. high']),
+        low: parseFloat(values['3. low']),
+        close: parseFloat(values['4. close']),
+        volume: 0, // Forex doesn't have volume
+      }));
+  } catch (error) {
+    console.error('Error fetching forex intraday data:', error);
+    throw error;
+  }
+}
+
 // Get market news and sentiment
 export async function getMarketNews(tickers?: string) {
   try {
