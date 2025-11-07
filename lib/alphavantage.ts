@@ -369,3 +369,46 @@ export async function getSMA(
     throw error;
   }
 }
+
+// Get top gainers and losers
+export async function getTopGainersLosers() {
+  try {
+    const response = await axios.get(BASE_URL, {
+      params: {
+        function: 'TOP_GAINERS_LOSERS',
+        apikey: API_KEY,
+      },
+    });
+
+    return {
+      top_gainers: response.data.top_gainers || [],
+      top_losers: response.data.top_losers || [],
+      most_actively_traded: response.data.most_actively_traded || [],
+    };
+  } catch (error) {
+    console.error('Error fetching top gainers/losers:', error);
+    throw error;
+  }
+}
+
+// Get multiple quotes in batch (for quick access display)
+export async function getQuoteBatch(symbols: string[]) {
+  try {
+    // Due to API rate limits, we'll fetch them sequentially with a small delay
+    const quotes = [];
+    for (const symbol of symbols.slice(0, 6)) { // Limit to 6 to avoid rate limits
+      try {
+        const quote = await getStockQuote(symbol);
+        quotes.push(quote);
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (err) {
+        console.error(`Error fetching ${symbol}:`, err);
+      }
+    }
+    return quotes;
+  } catch (error) {
+    console.error('Error fetching batch quotes:', error);
+    throw error;
+  }
+}

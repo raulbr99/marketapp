@@ -8,6 +8,7 @@ import StockChart from '@/components/StockChart';
 import CryptoCard from '@/components/CryptoCard';
 import CryptoChart from '@/components/CryptoChart';
 import ForexChart from '@/components/ForexChart';
+import QuickAccess from '@/components/QuickAccess';
 import {
   getStockQuote,
   getIntradayTimeSeries,
@@ -165,6 +166,22 @@ export default function Home() {
             />
           )}
         </div>
+
+        {/* Quick Access - Show when no data is loaded */}
+        {!stockData && !cryptoData && !forexData && !loading && (
+          <QuickAccess
+            type={activeTab}
+            onSelect={(symbol) => {
+              if (activeTab === 'stocks') {
+                handleStockSearch(symbol);
+              } else if (activeTab === 'crypto') {
+                handleCryptoSearch(symbol);
+              } else {
+                handleForexSearch(symbol);
+              }
+            }}
+          />
+        )}
 
         {/* Loading State */}
         {loading && (
