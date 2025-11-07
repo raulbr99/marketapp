@@ -1,6 +1,6 @@
 'use client';
 
-import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 
 interface TimeSeriesData {
@@ -18,36 +18,51 @@ interface ForexChartProps {
   toCurrency: string;
 }
 
-// Custom Candlestick shape
-const Candlestick = (props: any) => {
-  const { x, y, width, height, payload } = props;
+// Custom candlestick shape for forex
+const CandlestickShape = (props: any) => {
+  const { x, y, width, height, low, high, open, close } = props;
 
-  if (!payload || !payload.open || !payload.close || !payload.high || !payload.low) {
-    return null;
-  }
+  const isGrowing = close > open;
+  const color = isGrowing ? '#3b82f6' : '#f59e0b';
 
-  const { open, close, high, low } = payload;
-  const isPositive = close >= open;
-  const color = isPositive ? '#3b82f6' : '#f59e0b'; // Blue for up, amber for down (forex style)
-  const ratio = Math.abs(height / (open - close));
+  const ratio = height / (high - low);
+  const candleWidth = Math.max(width * 0.7, 2);
+  const centerX = x + width / 2;
+
+  const highY = y;
+  const lowY = y + height;
+  const openY = y + (high - open) * ratio;
+  const closeY = y + (high - close) * ratio;
+
+  const bodyY = Math.min(openY, closeY);
+  const bodyHeight = Math.max(Math.abs(openY - closeY), 1);
 
   return (
     <g>
-      {/* High-Low wick */}
+      {/* Upper wick */}
       <line
-        x1={x + width / 2}
-        y1={y - (high - Math.max(open, close)) * ratio}
-        x2={x + width / 2}
-        y2={y + height + (Math.min(open, close) - low) * ratio}
+        x1={centerX}
+        y1={highY}
+        x2={centerX}
+        y2={bodyY}
         stroke={color}
         strokeWidth={1.5}
       />
-      {/* Body */}
+      {/* Lower wick */}
+      <line
+        x1={centerX}
+        y1={bodyY + bodyHeight}
+        x2={centerX}
+        y2={lowY}
+        stroke={color}
+        strokeWidth={1.5}
+      />
+      {/* Candle body */}
       <rect
-        x={x + 1}
-        y={y}
-        width={Math.max(width - 2, 1)}
-        height={height || 1}
+        x={centerX - candleWidth / 2}
+        y={bodyY}
+        width={candleWidth}
+        height={bodyHeight}
         fill={color}
         stroke={color}
         strokeWidth={1}
@@ -104,7 +119,7 @@ export default function ForexChart({ data, fromCurrency, toCurrency }: ForexChar
         </div>
       </div>
       <ResponsiveContainer width="100%" height={500}>
-        <ComposedChart data={formattedData} margin={{ bottom: 80 }}>
+        <ComposedChart data={formattedData} margin={{ top: 10, right: 30, left: 0, bottom: 80 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#3b82f6" opacity={0.1} />
           <XAxis
             dataKey="formattedDate"
@@ -114,23 +129,27 @@ export default function ForexChart({ data, fromCurrency, toCurrency }: ForexChar
             height={80}
           />
           <YAxis
-            domain={['auto', 'auto']}
+            domain={[
+              (dataMin: number) => (dataMin * 0.9995).toFixed(5),
+              (dataMax: number) => (dataMax * 1.0005).toFixed(5)
+            ]}
             tick={{ fontSize: 12 }}
             tickFormatter={(value) => value.toFixed(5)}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#3b82f6', strokeWidth: 1 }} />
           <Bar
-            dataKey="close"
-            shape={<Candlestick />}
-            isAnimationActive={false}
-          >
-            {formattedData.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={entry.close >= entry.open ? '#3b82f6' : '#f59e0b'}
+            dataKey="high"
+            shape={(props: any) => (
+              <CandlestickShape
+                {...props}
+                low={formattedData[props.index].low}
+                high={formattedData[props.index].high}
+                open={formattedData[props.index].open}
+                close={formattedData[props.index].close}
               />
-            ))}
-          </Bar>
+            )}
+            isAnimationActive={false}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
